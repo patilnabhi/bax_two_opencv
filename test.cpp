@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <cmath>
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Pose.h>
 #define uchar unsigned char
 #define _r(x, y, image) ((uchar *)((image)->imageData + ((image)->widthStep) * (x)))[3 * y + 2]
 #define _g(x, y, image) ((uchar *)((image)->imageData + ((image)->widthStep) * (x)))[3 * y + 1]
@@ -36,6 +38,7 @@ uchar COLOR[3] = {100, 100, 0};
 extern void GetPosition(IplImage *);
 extern int GetColor(IplImage *);
 extern void FilterColor(IplImage *, IplImage *, uchar *);
+ros::Publisher pos_pub;
 typedef struct pos
 {
   int x, y;
@@ -93,11 +96,16 @@ void ImageCallBack(const sensor_msgs::Image &msg)
   //head = cvLoadImage("frame0000.jpg");
   IplImage *pp = NULL;
   GetPosition(head);
+  geometry_msgs::PoseArray points;
+  geometry_msgs::Pose pose;
   for(int i = 0; i != NUM_OBJ; i++)
   {
-    //ROS_INFO("Obj %d 's position is : x = %d, y = %d", i + 1, pos_head[i].x, pos_head[i].y);
+    pose.position.x = rel_pos[i].x / 1000;
+    pose.position.y = rel_pos[i].y / 1000;
+    pose.position.z = rel_pos[i].angle;
+    points.poses.push_back(pose);
   }
-  //ROS_INFO("I heard: [%d]",  );
+  pos_pub.publish(points);
 }
 int main(int arg, char** argv)
 {
@@ -125,6 +133,7 @@ int main(int arg, char** argv)
   _Ma(0, 3, DIS) = 0.00419;
   ros::init(arg, argv, "test");
   ros::NodeHandle n;
+  pos_pub = n.advertise<geometry_msgs::PoseArray>("Dpos", 2);
   ros::Subscriber sub = n.subscribe("/cameras/right_hand_camera/image", 1, ImageCallBack);
   ros::spin();
   return 0;
@@ -228,7 +237,7 @@ void Get3DPos(pos *src, pos_ *dis, int num)///The num is the # of Object
   CvMat *test = cvCreateMat(3, 3, CV_32FC1);
   _Ma(1, 1, test);
   float tempx = _Ma(0, 0, INVTRANS) * src->x;  _Ma(0, 2, INVTRANS);
-  float tempy = _Ma(1, 1, INVTRANS) * src->y + 0.1;  _Ma(1, 2, INVTRANS);
+  float tempy = _Ma(1, 1, INVTRANS) * src->y + 0.08;  _Ma(1, 2, INVTRANS);
   GetRealPos(tempx, tempy, 0, 0, 1.0, 0, 1, 775.00, dis);
   dis->angle = src->angle;
 }
