@@ -118,19 +118,19 @@ int main(int arg, char** argv)
   _Ma(2, 0, TRANS) = 0;
   _Ma(2, 1, TRANS) = 0;
   _Ma(2, 2, TRANS) = 1;
-  _Ma(0, 0, INVTRANS) = 0.0024842;
+  _Ma(0, 0, INVTRANS) = 0.0022042;
   _Ma(0, 1, INVTRANS) = 0;
   _Ma(0, 2, INVTRANS) = -0.74724;
   _Ma(1, 0, INVTRANS) = 0;
-  _Ma(1, 1, INVTRANS) = 0.0024249;
+  _Ma(1, 1, INVTRANS) = 0.0022049;
   _Ma(1, 2, INVTRANS) = -0.57610;
   _Ma(2, 0, INVTRANS) = 0;
   _Ma(2, 1, INVTRANS) = 0;
   _Ma(2, 2, INVTRANS) = 1;
-  _Ma(0, 0, DIS) = -0.00873;
-  _Ma(0, 1, DIS) = -0.01703;
-  _Ma(0, 2, DIS) = 0.00336;
-  _Ma(0, 3, DIS) = 0.00419;
+  _Ma(0, 0, DIS) = 0.01386;
+  _Ma(0, 1, DIS) = -0.058;
+  _Ma(0, 2, DIS) = 0.00134;
+  _Ma(0, 3, DIS) = 0.00227;
   ros::init(arg, argv, "test");
   ros::NodeHandle n;
   pos_pub = n.advertise<geometry_msgs::PoseArray>("Dpos", 2);
@@ -154,7 +154,7 @@ void GetPosition(IplImage *src)
   //ROS_INFO("%d", (int)_b(200, 100, src_));
   cvSmooth(src, src, CV_GAUSSIAN, 5, 5);
   FilterColor(src, blue, COLOR);
-  cvErode(blue, temp_, NULL, 2);
+  cvErode(blue, temp_, NULL, 4);
   IplImage *gray = cvCreateImage(cvGetSize(src), IPL_DEPTH_8U, 1);
   cvCvtColor(temp_, gray, CV_BGR2GRAY);
   cvThreshold(gray, gray_, 20, 255, CV_THRESH_BINARY);
@@ -192,6 +192,13 @@ void GetPosition(IplImage *src)
     Get3DPos(pos_head + NUM_OBJ, rel_pos + NUM_OBJ, 1);
     NUM_OBJ++;
         
+  }
+  for(int i = 0; i != NUM_OBJ; i++)
+  {
+    for(int j = i; j != NUM_OBJ; j++)
+    {
+
+    }
   }
   ROS_INFO("%d", NUM_OBJ);
   cvDrawContours(test, big, CV_RGB(255, 0, 0), CV_RGB(255, 0, 0), -1, 2, 8, cvPoint(0,0));
@@ -236,9 +243,9 @@ void Get3DPos(pos *src, pos_ *dis, int num)///The num is the # of Object
 {
   CvMat *test = cvCreateMat(3, 3, CV_32FC1);
   _Ma(1, 1, test);
-  float tempx = _Ma(0, 0, INVTRANS) * src->x;  _Ma(0, 2, INVTRANS);
-  float tempy = _Ma(1, 1, INVTRANS) * src->y + 0.08;  _Ma(1, 2, INVTRANS);
-  GetRealPos(tempx, tempy, 0, 0, 1.0, 0, 1, 775.00, dis);
+  float tempx = _Ma(0, 0, INVTRANS) * src->x + 0.015;  _Ma(0, 2, INVTRANS);
+  float tempy = _Ma(1, 1, INVTRANS) * src->y + 0.058;  _Ma(1, 2, INVTRANS);
+  GetRealPos(tempx, tempy, 0, 0, 1.0, 0, 1, 475, dis);
   dis->angle = src->angle;
 }
 void GetRealPos(float x, float y, float xz, float yz, float zz, float xp, float yp, float zp, pos_ *dis) /// xp ...zp is the porsition of a
