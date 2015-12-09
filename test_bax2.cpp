@@ -121,7 +121,7 @@ void ImageCallBack(const sensor_msgs::Image &msg)
     pose.position.x = rel_pos[i].x / 1000;
     pose.position.y = rel_pos[i].y / 1000;
     pose.position.z = rel_pos[i].angle;
-    pose.orientation.x = f_pos[i].size;
+    pose.orientation.x = f_pos[i].color;
     points.poses.push_back(pose);
   }
   pos_pub.publish(points);
@@ -209,8 +209,8 @@ void GetPosition(IplImage *src)
     pos_head[NUM_OBJ].x = (int) rect.center.x - WIDTH / 2;
     pos_head[NUM_OBJ].y = -((int) rect.center.y - HEIGHT / 2);
     //pos_head[NUM_OBJ].x1 = (float) sqrt(rect.size.height * rect.size.height + rect.size.width * rect.size.width);
-    pos_head[NUM_OBJ].x2 = (int) (pos_head[NUM_OBJ].x + sin(rect.angle / 180 * 3.14) * rect.size.height / 2);
-    pos_head[NUM_OBJ].y2 = (int) (pos_head[NUM_OBJ].y + cos(rect.angle / 180 * 3.14) * rect.size.height / 2);
+    pos_head[NUM_OBJ].x2 = (int) (pos_head[NUM_OBJ].x + sin(rect.angle / 180 * 6.28) * rect.size.height / 2);
+    pos_head[NUM_OBJ].y2 = (int) (pos_head[NUM_OBJ].x + cos(rect.angle / 180 * 6.28) * rect.size.height / 2);
     pos_head[NUM_OBJ].angle = rect.angle;
     Get3DPos(pos_head + NUM_OBJ, rel_pos + NUM_OBJ, 1);
     f_pos[NUM_OBJ].x = rel_pos[NUM_OBJ].x;
@@ -220,11 +220,51 @@ void GetPosition(IplImage *src)
     f_pos[NUM_OBJ].color = 1;
     NUM_OBJ++;      
   }
-
+  cvErode(red, temp_, NULL, 4);
+  cvCvtColor(temp_, gray, CV_BGR2GRAY);
+  cvThreshold(gray, gray_, 20, 255, CV_THRESH_BINARY);
+  //cvCanny(gray_, con, 30, 60, 3);
+  con_ = cvCloneImage(gray_);
+  cvFindContours(con_, st, &first, sizeof(CvContour), CV_RETR_LIST);
+  for(CvSeq *c = first; c != NULL; c = c->h_next)
+  {
+    if(fabs(cvContourArea(c)) < min);
+      //;continue;
+    if (fabs(cvContourArea(c)) >= area)
+    {
+      big = c;
+      area = fabs(cvContourArea(c));
+    }
+    /*float x = 0, y = 0;
+    for (int i = 0; i != c->total; i++)
+    {
+      CvPoint *p = CV_GET_SEQ_ELEM(CvPoint, c, i);
+      x += p->x;
+      y += p->y;
+    }
+    x /= c->total;
+    y /= c->total;
+    pos_head[NUM_OBJ].x = (int)x - WIDTH / 2;
+    pos_head[NUM_OBJ].y = (int)(HEIGHT - y) - HEIGHT / 2;*/
+    CvBox2D rect = cvMinAreaRect2(c, st);
+    pos_head[NUM_OBJ].x = (int) rect.center.x - WIDTH / 2;
+    pos_head[NUM_OBJ].y = -((int) rect.center.y - HEIGHT / 2);
+    //pos_head[NUM_OBJ].x1 = (float) sqrt(rect.size.height * rect.size.height + rect.size.width * rect.size.width);
+    pos_head[NUM_OBJ].x2 = (int) (pos_head[NUM_OBJ].x + sin(rect.angle / 180 * 6.28) * rect.size.height / 2);
+    pos_head[NUM_OBJ].y2 = (int) (pos_head[NUM_OBJ].x + cos(rect.angle / 180 * 6.28) * rect.size.height / 2);
+    pos_head[NUM_OBJ].angle = rect.angle;
+    Get3DPos(pos_head + NUM_OBJ, rel_pos + NUM_OBJ, 1);
+    f_pos[NUM_OBJ].x = rel_pos[NUM_OBJ].x;
+    f_pos[NUM_OBJ].y = rel_pos[NUM_OBJ].y;
+    f_pos[NUM_OBJ].z = rel_pos[NUM_OBJ].z;
+    f_pos[NUM_OBJ].size = sqrt((rel_pos[NUM_OBJ].x - rel_pos[NUM_OBJ].x1) * (rel_pos[NUM_OBJ].x - rel_pos[NUM_OBJ].x1) + (rel_pos[NUM_OBJ].y - rel_pos[NUM_OBJ].y1) * (rel_pos[NUM_OBJ].y - rel_pos[NUM_OBJ].y1));
+    f_pos[NUM_OBJ].color = 0;
+    NUM_OBJ++;      
+  }
   ROS_INFO("%d", NUM_OBJ);
   cvDrawContours(test, big, CV_RGB(255, 0, 0), CV_RGB(255, 0, 0), -1, 2, 8, cvPoint(0,0));
   ROS_INFO("%f, %f, %f", rel_pos[0].x, rel_pos[0].y, pos_head[0].angle);
-  cvShowImage("gar", src);
+  cvShowImage("gar", gray_);
   waitKey(1);
   cvReleaseMemStorage(&st);
   cvReleaseImage(&gray);
